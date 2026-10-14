@@ -1,54 +1,132 @@
-# Coder Crew
+# CrewAI Coder
 
-Welcome to the Coder Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+A beginner-friendly CrewAI project that demonstrates how a single AI agent can plan, write, execute, and check Python code for a programming assignment.
 
-## Installation
+This project was built as a learning exercise to explore CrewAI's coding capabilities, agent configuration, task definitions, and code execution.
 
-Ensure you have Python >=3.10 <3.14 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+## What it does
 
-First, if you haven't already, install uv:
+The project gives a Python programming assignment to a CrewAI agent configured as a Python Developer. The agent is instructed to plan an approach, write code, run it, and check the output.
 
-```bash
-pip install uv
+The current assignment asks the agent to approximate \(\pi\) using the first 10,000 terms of the Leibniz series:
+
+\[
+\pi \approx 4 \sum_{i=0}^{9999} \frac{(-1)^i}{2i+1}
+\]
+
+The result is written to `output/code_and_output.txt`.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A[main.py: assignment input] --> B[CrewAI Coder crew]
+    B --> C[Python Developer agent]
+    D[agents.yaml: role, goal, backstory] --> C
+    E[tasks.yaml: task description and expected output] --> F[Coding task]
+    C --> F
+    F --> G[Code execution and output checking]
+    G --> H[output/code_and_output.txt]
+    I[MixRoute API: configured LLM] --> C
 ```
 
-Next, navigate to your project directory and install the dependencies:
+### Execution flow
 
-(Optional) Lock the dependencies and install them by using the CLI command:
+1. `main.py` defines the programming assignment and passes it to the crew.
+2. `crew.py` configures the LLM through MixRoute and creates the agent and crew.
+3. `config/agents.yaml` describes the agent's role, goal, and backstory.
+4. `config/tasks.yaml` describes the coding task and specifies the output file.
+5. The agent is allowed to execute code in CrewAI's `safe` code-execution mode, with a 30-second execution limit and up to five retries.
+6. The task output is saved to `output/code_and_output.txt`, and the raw result is printed to the terminal.
+
+## Tech stack
+
+- **Python** — application language
+- **CrewAI** — agent and task orchestration
+- **MixRoute** — OpenAI-compatible model API endpoint used by CrewAI's `LLM` interface
+- **LLM model configured in the code:** `gemini-3.5-flash-lite`
+- **Alternative model initialized in code:** `deepseek-v4-flash` (currently assigned to `llm1`, which is not used by the agent)
+- **uv** — dependency and environment management
+- **YAML** — agent and task configuration
+
+The project dependency is pinned to `crewai[tools]==1.14.4` in `pyproject.toml`.
+
+## Prerequisites
+
+- Python `>=3.10,<3.14`
+- [`uv`](https://docs.astral.sh/uv/)
+- A MixRoute API key with access to the configured model
+
+## Setup
+
+### 1. Clone the repository
+
 ```bash
-crewai install
+git clone <your-repository-url>
+cd crewai-coder
 ```
-### Customizing
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+Replace `<your-repository-url>` with the URL of your GitHub repository.
 
-- Modify `src/coder/config/agents.yaml` to define your agents
-- Modify `src/coder/config/tasks.yaml` to define your tasks
-- Modify `src/coder/crew.py` to add your own logic, tools and specific args
-- Modify `src/coder/main.py` to add custom inputs for your agents and tasks
+### 2. Install dependencies
 
-## Running the Project
-
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
+From the project root, run:
 
 ```bash
-$ crewai run
+uv sync
 ```
 
-This command initializes the coder Crew, assembling the agents and assigning them tasks as defined in your configuration.
+### 3. Configure the API key
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+Create a `.env` file in the project root:
 
-## Understanding Your Crew
+```env
+MIXROUTE_API_KEY=your_mixroute_api_key
+```
 
-The coder Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+Do not commit `.env` or publish your API key. Make sure `.env` is included in `.gitignore`.
 
-## Support
+## Run the project
 
-For support, questions, or feedback regarding the Coder Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
+From the repository root, run:
 
-Let's create wonders together with the power and simplicity of crewAI.
+```bash
+uv run run_crew
+```
+
+The project entry point is `coder.main:run`, as defined in `pyproject.toml`. The assignment is currently hard-coded in `src/coder/main.py`. Edit the `assignment` variable there to try a different programming task.
+
+The crew's LLM configuration is in `src/coder/crew.py`. The active agent uses `gemini-3.5-flash-lite` through `https://api.mixroute.ai/v1`.
+
+## Example result
+
+The checked-in output file contains a generated solution for the Leibniz-series assignment. Its recorded result is:
+
+```text
+Result after multiplying the first 10000 terms by 4: 3.1414926535900345
+```
+
+This is an example captured in `output/code_and_output.txt`; results may vary between model runs.
+
+## Configuration guide
+
+| File | Purpose |
+|---|---|
+| `src/coder/main.py` | Defines the assignment and starts the crew |
+| `src/coder/crew.py` | Configures the MixRoute LLM, agent, task, and sequential crew |
+| `src/coder/config/agents.yaml` | Defines the agent's role, goal, and backstory |
+| `src/coder/config/tasks.yaml` | Defines the task and output destination |
+| `pyproject.toml` | Declares project dependencies and command-line entry points |
+
+## Learning points
+
+This project is a small example of:
+
+- Defining an agent with a role, goal, and backstory.
+- Separating agent configuration from Python code using YAML.
+- Defining a task with an expected output and an output file.
+- Connecting CrewAI to a model API through a base URL and API key.
+- Enabling agent code execution and setting execution/retry limits.
+- Running a crew from a project entry point.
+
+
